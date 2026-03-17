@@ -30,7 +30,7 @@ export interface ModelMetrics {
 // Generate forecast data for next 14 days
 export function generateForecastData(): ForecastData[] {
   const data: ForecastData[] = [];
-  const startDate = new Date(2026, 2, 16); // March 16, 2026
+  const startDate = new Date(2025, 11, 28); // March 16, 2026
   
   for (let i = 0; i < 14; i++) {
     const date = new Date(startDate);
@@ -65,7 +65,7 @@ export function generateForecastData(): ForecastData[] {
 // Generate historical data for past 90 days
 export function generateHistoricalData(): HistoricalData[] {
   const data: HistoricalData[] = [];
-  const endDate = new Date(2026, 2, 15); // March 15, 2026
+  const endDate = new Date(2025, 12, 1); // March 15, 2026
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   
@@ -127,7 +127,7 @@ export const modelMetrics: ModelMetrics = {
   rmse: 8.3,
   mae: 6.2,
   r2: 0.89,
-  lastTrained: '2026-03-10',
+  lastTrained: '2025-12-31',
 };
 
 // Feature importance data

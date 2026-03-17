@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Play, Plus, Trash2, Loader2 } from 'lucide-react';
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../../firebase";
 
 interface KnownAQIRow {
   date: string;
@@ -9,19 +11,19 @@ interface KnownAQIRow {
 
 export function ForecastConfig() {
   const navigate = useNavigate();
-  const [startDate, setStartDate] = useState('2026-03-16');
-  const [endDate, setEndDate] = useState('2026-03-29');
+  const [startDate, setStartDate] = useState('2026-01-01');
+  const [endDate, setEndDate] = useState('2026-01-07');
   const [knownAQI, setKnownAQI] = useState<KnownAQIRow[]>([
-    { date: '2026-03-16', aqi: 65 },
-    { date: '2026-03-17', aqi: 72 },
+    { date: '2026-01-01', aqi: 62 },
+    { date: '2026-01-07', aqi: 50 },
   ]);
   const [pmMean, setPmMean] = useState(45.2);
   const [pmStd, setPmStd] = useState(12.5);
   const [useRealPM10, setUseRealPM10] = useState(false);
-  const [nEstimators, setNEstimators] = useState(100);
-  const [learningRate, setLearningRate] = useState(0.1);
-  const [maxDepth, setMaxDepth] = useState(7);
-  const [numLeaves, setNumLeaves] = useState(31);
+  const [nEstimators, setNEstimators] = useState(500);
+  const [learningRate, setLearningRate] = useState(0.05);
+  const [maxDepth, setMaxDepth] = useState(3);
+  const [numLeaves, setNumLeaves] = useState(7);
   const [loading, setLoading] = useState(false);
 
   const addKnownAQI = () => {
@@ -40,10 +42,37 @@ export function ForecastConfig() {
 
   const runForecast = async () => {
     setLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setLoading(false);
-    navigate('/');
+    try {
+      const response = await fetch("http://127.0.0.1:5000/api/run-forecast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          start_date: startDate,
+          end_date: endDate,
+          known_aqi: knownAQI,
+          pm_mean: pmMean,
+          pm_std: pmStd,
+          use_real_pm10: useRealPM10,
+          n_estimators: nEstimators,
+          learning_rate: learningRate,
+          max_depth: maxDepth,
+          num_leaves: numLeaves,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to fetch forecast");
+
+      const forecastData = await response.json();
+      console.log("Forecast received:", forecastData);
+
+      // Navigate to dashboard or show results
+      navigate("/", { state: { forecastData } });
+    } catch (err) {
+      console.error(err);
+      alert("Error sending data. Check firestore.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Validation
@@ -196,14 +225,14 @@ export function ForecastConfig() {
             <input
               type="range"
               min="50"
-              max="200"
+              max="500"
               value={nEstimators}
               onChange={(e) => setNEstimators(Number(e.target.value))}
               className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
             />
             <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
               <span>50</span>
-              <span>200</span>
+              <span>500</span>
             </div>
           </div>
           <div>
@@ -247,8 +276,8 @@ export function ForecastConfig() {
             </label>
             <input
               type="range"
-              min="15"
-              max="63"
+              min="2"
+              max="64"
               value={numLeaves}
               onChange={(e) => setNumLeaves(Number(e.target.value))}
               className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"

@@ -1,28 +1,50 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, TrendingUp, Target, Download, Settings, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { Link } from 'react-router';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { MetricCard } from '../components/MetricCard';
 import { generateForecastData, getAQIColor, getAQICategory } from '../utils/mockData';
 
+interface ForecastItem {
+  date: string;
+  predicted_aqi: number;
+  actual_aqi?: number;
+  pm10?: number;
+}
+
 export function Dashboard() {
-  const forecastData = generateForecastData();
+  const [forecastData, setForecastData] = useState<ForecastItem[]>([]);
   const [showPredicted, setShowPredicted] = useState(true);
   const [showActual, setShowActual] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   // Calculate key metrics
   const latestForecastDate = forecastData[forecastData.length - 1]?.date || 'N/A';
-  const minAQI = Math.min(...forecastData.map(d => d.predictedAQI));
-  const maxAQI = Math.max(...forecastData.map(d => d.predictedAQI));
-  const avgAQI = Math.round(forecastData.reduce((sum, d) => sum + d.predictedAQI, 0) / forecastData.length);
+  const predictedValues = forecastData.map(d => d.predicted_aqi || 0);
+  const minAQI = Math.min(...predictedValues);
+  const maxAQI = Math.max(...predictedValues);
+  const avgAQI = Math.round(predictedValues.reduce((sum, d) => sum + d, 0) / predictedValues.length);
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/forecast")
+      .then(res => res.json())
+      .then(data => {
+        setForecastData(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Failed to fetch forecast data:", err);
+        setLoading(false);
+      });
+  }, []);
 
   // Export function
   const exportCSV = () => {
     const headers = ['Date', 'Predicted AQI', 'Actual AQI', 'PM10'];
     const rows = forecastData.map(d => [
       d.date,
-      d.predictedAQI,
-      d.actualAQI || 'N/A',
+      d.predicted_aqi,
+      d.actual_aqi || 'N/A',
       d.pm10 || 'N/A',
     ]);
     
@@ -180,13 +202,13 @@ export function Dashboard() {
             <Tooltip
               contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
               labelFormatter={(value) => `Date: ${value}`}
-              formatter={(value: number, name: string) => [value, name === 'predictedAQI' ? 'Predicted' : 'Actual']}
+              formatter={(value: number, name: string) => [value, name === 'predicted_aqi' ? 'Predicted' : 'Actual']}
             />
             <Legend />
             {showPredicted && (
               <Line
                 type="monotone"
-                dataKey="predictedAQI"
+                dataKey="predicted_aqi"
                 stroke="#3b82f6"
                 strokeWidth={3}
                 dot={{ fill: '#3b82f6', r: 5, strokeWidth: 2, stroke: '#fff' }}
@@ -197,7 +219,7 @@ export function Dashboard() {
             {showActual && (
               <Line
                 type="monotone"
-                dataKey="actualAQI"
+                dataKey="actual_aqi"
                 stroke="#10b981"
                 strokeWidth={3}
                 dot={{ fill: '#10b981', r: 5, strokeWidth: 2, stroke: '#fff' }}
@@ -251,25 +273,25 @@ export function Dashboard() {
                     <span
                       className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold"
                       style={{
-                        backgroundColor: `${getAQIColor(row.predictedAQI)}15`,
-                        color: getAQIColor(row.predictedAQI),
-                        border: `2px solid ${getAQIColor(row.predictedAQI)}30`,
+                        backgroundColor: `${getAQIColor(row.predicted_aqi)}15`,
+                        color: getAQIColor(row.predicted_aqi),
+                        border: `2px solid ${getAQIColor(row.predicted_aqi)}30`,
                       }}
                     >
-                      {row.predictedAQI} - {getAQICategory(row.predictedAQI)}
+                      {row.predicted_aqi} - {getAQICategory(row.predicted_aqi)}
                     </span>
                   </td>
                   <td className="px-8 py-5 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {row.actualAQI ? (
+                    {row.actual_aqi ? (
                       <span
                         className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold"
                         style={{
-                          backgroundColor: `${getAQIColor(row.actualAQI)}15`,
-                          color: getAQIColor(row.actualAQI),
-                          border: `2px solid ${getAQIColor(row.actualAQI)}30`,
+                          backgroundColor: `${getAQIColor(row.actual_aqi)}15`,
+                          color: getAQIColor(row.actual_aqi),
+                          border: `2px solid ${getAQIColor(row.actual_aqi)}30`,
                         }}
                       >
-                        {row.actualAQI}
+                        {row.actual_aqi}
                       </span>
                     ) : (
                       <span className="text-gray-400 dark:text-gray-500">—</span>
